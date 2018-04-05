@@ -1,12 +1,11 @@
-mport subprocess
+import subprocess
 import ssl
 import time
 import paho.mqtt.client as mqtt
 import json
 
+#for groovepi
 from grovepi import *
-dht_sensor_port = 7 # connect the DHt sensor to port 7
-dht_sensor_type = 0 # use 0 for the blue-colored sensor and 1 for the white-colored sensor
 
 id = "pi_sensehat"
 
