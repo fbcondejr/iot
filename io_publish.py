@@ -11,14 +11,14 @@ dht_sensor_type = 0 # use 0 for the blue-colored sensor and 1 for the white-colo
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
-    # Subscribing in on_connect() means that if we lose the connection and
-    # reconnect then subscriptions will be renewed.
-    # client.subscribe("$SYS/#")
+	print("Connected with result code "+str(rc))
+	# Subscribing in on_connect() means that if we lose the connection and
+	# reconnect then subscriptions will be renewed.
+	# client.subscribe("$SYS/#")
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.payload))
+	print(msg.topic+" "+str(msg.payload))
 
 def on_log(client, userdata, level, buf):
 	print("Debug %d: %s"%(level, buf))
@@ -35,10 +35,10 @@ def main():
 	client = mqtt.Client("pi_john_pub")
 
 	client.tls_set( "CARoot.pem",
-					"66321288b3-certificate.pem.crt",
-					"66321288b3-private.pem.key",
-					cert_reqs=ssl.CERT_NONE,
-					tls_version=ssl.PROTOCOL_TLSv1_2)
+			"66321288b3-certificate.pem.crt",
+			"66321288b3-private.pem.key",
+			cert_reqs=ssl.CERT_NONE,
+			tls_version=ssl.PROTOCOL_TLSv1_2)
 
 	client.on_connect = on_connect
 	client.on_message = on_message
@@ -47,23 +47,27 @@ def main():
 	client.connect("a1zd8y5etgd1ze.iot.ap-northeast-1.amazonaws.com", 8883, 60)
 	
 	while True :
-            try:
+		try:
+			# get the temperature and Humidity from the DHT sensor
+			[ temp,hum ] = dht(dht_sensor_port,dht_sensor_type)
 
-		# get the temperature and Humidity from the DHT sensor
-                [ temp,hum ] = dht(dht_sensor_port,dht_sensor_type)
-                client.publish("iot/temperature", payload = gen_payload("temperature", temp))
-                client.publish("iot/humidity",    payload = gen_payload("humidity",    hum))
-                
-		# check if we have nans
-		# if so, then raise a type error exception
-                if isnan(temp) is True or isnan(hum) is True :
-                    raise TypeError('nan error')
-                
-                
-                sleep(1.0)
-                
-                
-                client.disconnect()
-                
-                if __name__ == '__main__':
-                    main()
+			# check if we have nans
+			# if so, then raise a type error exception
+			if isnan(temp) is True or isnan(hum) is True :
+				raise TypeError('nan error')
+
+			client.publish("iot/temperature", payload = gen_payload("temperature", temp))
+			client.publish("iot/humidity",    payload = gen_payload("humidity",    hum))
+
+		except TypeError:
+		    	pass
+		except:
+			print "Unexpected error:", sys.exc_info()[0]
+			raise
+
+		sleep(1.0) ## while end 
+
+	client.disconnect() ## main() end
+
+if __name__ == '__main__':
+	main()
