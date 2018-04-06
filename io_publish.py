@@ -4,36 +4,17 @@ import time
 import paho.mqtt.client as mqtt
 import json
 
-#for groovepi
+#grovepi 
 from grovepi import *
-
-id = "pi_sensehat"
-
-#sense = SenseHat()
-
-def get_temperature():
-	temp = grovepi.get_temperature()
-	cpu_temp = subprocess.check_output("vcgencmd measure_temp", shell=True)
-	array = cpu_temp.split("=")
-	array2 = array[1].split("'")
-	cpu_tempf = float(array2[0])
-	temp_calibrated = temp - ((cpu_tempf - temp)/2)
-
-	#print('CPU_TEMP = ' + repr(cpu_tempf)) #debug
-	#print('OLD_TEMP = ' + repr(temp)) #debug
-	#print('NEW_TEMP = ' + repr(temp_calibrated)) #debug
-
-	return float("{0:.1f}".format(temp_calibrated))
-
-def get_humidity():
-	return float("{0:.1f}".format(grovepi.get_humidity()))
+dht_sensor_port = 7 # connect the DHt sensor to port 7
+dht_sensor_type = 0 # use 0 for the blue-colored sensor and 1 for the white-colored sensor
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("$SYS/#")
+    # client.subscribe("$SYS/#")
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
@@ -64,24 +45,25 @@ def main():
 	#client.on_log = on_log #debug
 
 	client.connect("a1zd8y5etgd1ze.iot.ap-northeast-1.amazonaws.com", 8883, 60)
+	
+	while True :
+            try:
 
-	running = True
-	while running:
-		#print(get_temperature())
-		#print(get_humidity())
-
-		client.publish("iot/temperature", payload = gen_payload("temperature", get_temperature()))
-		client.publish("iot/humidity",    payload = gen_payload("humidity",    get_humidity()))
-
-		for event in grovepi.stick.get_events():
-			#print("Event: {} {}".format(event.action, event.direction)) #debug
-			if (event.direction == 'middle') and (event.action == 'released'):
-				running = False
-		time.sleep(1)
-
-	client.disconnect()
-	grovepi.clear()
-
-if __name__ == '__main__':
-	main()
-
+		# get the temperature and Humidity from the DHT sensor
+                [ temp,hum ] = dht(dht_sensor_port,dht_sensor_type)
+                client.publish("iot/temperature", payload = gen_payload("temperature", temp))
+                client.publish("iot/humidity",    payload = gen_payload("humidity",    hum))
+                
+		# check if we have nans
+		# if so, then raise a type error exception
+                if isnan(temp) is True or isnan(hum) is True :
+                    raise TypeError('nan error')
+                
+                
+                sleep(1.0)
+                
+                
+                client.disconnect()
+                
+                if __name__ == '__main__':
+                    main()
